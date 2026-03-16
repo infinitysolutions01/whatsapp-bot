@@ -5,17 +5,9 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Render pe Chrome ka path
-const executablePath =
-  process.env.PUPPETEER_EXECUTABLE_PATH ||
-  '/usr/bin/google-chrome-stable' ||
-  '/usr/bin/chromium-browser' ||
-  '/usr/bin/chromium';
-
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
-    executablePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
