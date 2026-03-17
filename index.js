@@ -5,9 +5,34 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 10000;
 
+// Render pe Chromium paths - ek ke baad ek try karega
+const findChrome = () => {
+  const paths = [
+    process.env.CHROME_PATH,
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+  ].filter(Boolean);
+
+  const fs = require('fs');
+  for (const p of paths) {
+    try {
+      if (fs.existsSync(p)) {
+        console.log('✅ Chrome found at:', p);
+        return p;
+      }
+    } catch (_) {}
+  }
+  console.error('❌ Chrome not found in any known path!');
+  return null;
+};
+
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: findChrome(),
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -37,33 +62,28 @@ client.on('auth_failure', (msg) => {
 
 client.on('disconnected', (reason) => {
   console.log('⚠️ Disconnected:', reason);
+  client.initialize();
 });
 
 client.initialize().catch(err => {
   console.error('❌ Client init error:', err.message);
 });
 
-// Health check
 app.get('/', (req, res) => {
   res.send('WhatsApp Bot is running 🚀');
 });
 
-// Send message API
 // Usage: /send?number=919876543210&msg=Hello
 app.get('/send', async (req, res) => {
   try {
     const { number, msg } = req.query;
-
     if (!number || !msg) {
-      return res.status(400).json({ error: 'number aur msg query params required hain' });
+      return res.status(400).json({ error: 'number aur msg required hai' });
     }
-
     const chatId = number + '@c.us';
     await client.sendMessage(chatId, msg);
-
-    console.log(`✅ Message sent to ${number}: ${msg}`);
-    res.json({ success: true, message: 'Message sent!', to: number });
-
+    console.log(`✅ Sent to ${number}: ${msg}`);
+    res.json({ success: true, to: number, message: msg });
   } catch (err) {
     console.error('❌ Send error:', err.message);
     res.status(500).json({ error: err.message });
